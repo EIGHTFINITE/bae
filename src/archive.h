@@ -30,7 +30,7 @@ template <typename T> inline T ArchiveHandler::getArchive() const
 
 class Archive : public QObject
 {
-	//Q_OBJECT
+	Q_OBJECT
 
 public:
 	//! Constructor

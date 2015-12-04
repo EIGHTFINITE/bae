@@ -168,7 +168,7 @@ class BSAProxyModel;
 
 class BSA : public Archive
 {
-	//Q_OBJECT
+	Q_OBJECT
 
 public:
 	//! Constructor; creates a %BSA from the given file path.
