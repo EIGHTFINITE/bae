@@ -11,11 +11,24 @@ CONFIG += c++11 zlib
 
 INCLUDEPATH += src lib
 
+# Debug/Release options
 CONFIG(debug, debug|release) {
 	# Debug Options
 	BUILD = debug
 	CONFIG += console
+} else {
+	# Release Options
+	BUILD = release
+	CONFIG -= console
+	DEFINES += QT_NO_DEBUG_OUTPUT
 }
+
+INTERMEDIATE = $${OUT_PWD}/GeneratedFiles/$${BUILD}
+
+UI_DIR = $${INTERMEDIATE}/.ui
+MOC_DIR = $${INTERMEDIATE}/.moc
+RCC_DIR = $${INTERMEDIATE}/.qrc
+OBJECTS_DIR = $${INTERMEDIATE}/.obj
 
 ###############################
 ## PROJECT SCOPES
