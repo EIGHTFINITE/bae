@@ -7,7 +7,7 @@ TARGET = bae
 
 QT += core gui widgets
 
-CONFIG += c++11 zlib
+CONFIG += c++11 zlib lz4
 
 INCLUDEPATH += src lib
 
@@ -88,6 +88,23 @@ zlib {
 		lib/zlib/trees.c \
 		lib/zlib/uncompr.c \
 		lib/zlib/zutil.c
+}
+
+lz4 {
+        INCLUDEPATH += lib/lz4
+
+        HEADERS += \
+                lib/lz4/lz4.h \
+                lib/lz4/lz4frame.h \
+                lib/lz4/lz4frame_static.h \
+                lib/lz4/lz4hc.h \
+                lib/lz4/xxhash.h
+
+        SOURCES += \
+                lib/lz4/lz4.c \
+                lib/lz4/lz4frame.c \
+                lib/lz4/lz4hc.c \
+                lib/lz4/xxhash.c
 }
 
 ###############################
