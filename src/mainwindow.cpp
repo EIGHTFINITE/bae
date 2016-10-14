@@ -107,7 +107,10 @@ void MainWindow::extract()
 
 	QString dir = QFileDialog::getExistingDirectory( this, tr( "Select Folder" ),
 		"", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
-		);
+	);
+
+	if ( dir.isEmpty() )
+		return;
 
 	progDlg->show();
 	progDlg->setTotalFiles( itemList.count() );
