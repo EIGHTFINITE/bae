@@ -134,21 +134,23 @@ void MainWindow::extract()
 		auto bsaPath = i->index().sibling( i->row(), 2 ).data( Qt::EditRole ).toString();
 
 		auto bsa = bsaHash.value( bsaPath );
-		if ( bsa && bsa->hasFile( file ) ) {
+		if ( bsa ) {
 			QByteArray data;
 
-			bsa->fileContents( file, data );
-
-			QFile f( dir + "/" + file );
-			QFileInfo finfo( f );
-
-			QDir d( finfo.path() );
-			if ( !d.exists() )
-				d.mkpath( finfo.path() );
-
-			if ( f.open( QIODevice::WriteOnly ) ) {
-				f.write( data );
-				f.close();
+			if ( bsa->fileContents( file, data ) ) {
+				QFile f( dir + "/" + file );
+				QFileInfo finfo( f );
+	
+				QDir d( finfo.path() );
+				if ( !d.exists() )
+					d.mkpath( finfo.path() );
+	
+				if ( f.open( QIODevice::WriteOnly ) ) {
+					f.write( data );
+					f.close();
+				}
+			} else {
+				qWarning() << file << " did not extract correctly.";
 			}
 
 			qApp->processEvents();
