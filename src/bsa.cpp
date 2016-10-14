@@ -459,6 +459,9 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 				} else if ( file->tex.chunks.count() ) {
 					// Fill DDS Header
 					DDS_HEADER ddsHeader = { 0 };
+					DDS_HEADER_DXT10 dx10Header = {};
+					
+					bool dx10 = false;
 
 					ddsHeader.dwSize = sizeof( ddsHeader );
 					ddsHeader.dwHeaderFlags = DDS_HEADER_FLAGS_TEXTURE | DDS_HEADER_FLAGS_LINEARSIZE | DDS_HEADER_FLAGS_MIPMAP;
@@ -470,9 +473,9 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 					
 					if ( file->tex.header.unk16 == 2049 )
 						ddsHeader.dwCubemapFlags = DDS_CUBEMAP_ALLFACES;
-
-					bool ok = true;
-
+					
+					bool supported = true;
+					
 					switch ( file->tex.header.format ) {
 					case DXGI_FORMAT_BC1_UNORM:
 						ddsHeader.ddspf.dwFlags = DDS_FOURCC;
@@ -493,18 +496,18 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 						break;
 
 					case DXGI_FORMAT_BC5_UNORM:
-						// Incorrect
 						ddsHeader.ddspf.dwFlags = DDS_FOURCC;
 						ddsHeader.ddspf.dwFourCC = MAKEFOURCC( 'A', 'T', 'I', '2' );
-						//ddsHeader.ddspf.dwFourCC =		MAKEFOURCC('D', 'X', 'T', '5');
 						ddsHeader.dwPitchOrLinearSize = file->tex.header.width * file->tex.header.height;	// 8bpp
 						break;
 
 					case DXGI_FORMAT_BC7_UNORM:
-						// Incorrect
 						ddsHeader.ddspf.dwFlags = DDS_FOURCC;
-						ddsHeader.ddspf.dwFourCC = MAKEFOURCC( 'B', 'C', '7', '\0' );
+						ddsHeader.ddspf.dwFourCC = MAKEFOURCC( 'D', 'X', '1', '0' );
 						ddsHeader.dwPitchOrLinearSize = file->tex.header.width * file->tex.header.height;	// 8bpp
+						
+						dx10 = true;
+						dx10Header.dxgiFormat = DXGI_FORMAT_BC7_UNORM;
 						break;
 
 					case DXGI_FORMAT_B8G8R8A8_UNORM:
@@ -525,20 +528,34 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 						break;
 
 					default:
-						ok = false;
+						supported = false;
 						break;
 					}
+					
+					if ( !supported )
+						return false;
 
-					char buf[sizeof( ddsHeader )];
-					memcpy( buf, &ddsHeader, sizeof( ddsHeader ) );
+					char dds[sizeof( ddsHeader )];
+					memcpy( dds, &ddsHeader, sizeof( ddsHeader ) );
 
 					int texSize = 0; // = file->unpackedLength;
 					int hdrSize = sizeof( ddsHeader ) + 4;
 
 					content.clear();
 					content.append( QByteArray::fromStdString( "DDS " ) );
-					content.append( QByteArray::fromRawData( buf, sizeof( ddsHeader ) ) );
+					content.append( QByteArray::fromRawData( dds, sizeof( ddsHeader ) ) );
 					Q_ASSERT( content.size() == hdrSize );
+					
+					if ( dx10 ) {
+						dx10Header.resourceDimension = DDS_DIMENSION_TEXTURE2D;
+						dx10Header.miscFlag = 0;
+						dx10Header.arraySize = 1;
+						dx10Header.miscFlags2 = 0;
+						
+						char dds2[sizeof( dx10Header )];
+						memcpy( dds2, &dx10Header, sizeof( dx10Header ) );
+						content.append( QByteArray::fromRawData( dds2, sizeof( dx10Header ) ) );
+					}
 
 					// Start at 1st chunk now
 					for ( int i = 0; i < file->tex.chunks.count(); i++ ) {

@@ -94,6 +94,34 @@ const DDS_PIXELFORMAT DDSPF_DX10 =
 
 #define DDS_FLAGS_VOLUME 0x00200000 // DDSCAPS2_VOLUME
 
+// Subset here matches D3D10_RESOURCE_DIMENSION and D3D11_RESOURCE_DIMENSION
+enum DDS_RESOURCE_DIMENSION
+{
+    DDS_DIMENSION_TEXTURE1D	= 2,
+    DDS_DIMENSION_TEXTURE2D	= 3,
+    DDS_DIMENSION_TEXTURE3D	= 4,
+};
+
+// Subset here matches D3D10_RESOURCE_MISC_FLAG and D3D11_RESOURCE_MISC_FLAG
+enum DDS_RESOURCE_MISC_FLAG
+{
+    DDS_RESOURCE_MISC_TEXTURECUBE = 0x4L,
+};
+
+enum DDS_MISC_FLAGS2
+{
+    DDS_MISC_FLAGS2_ALPHA_MODE_MASK = 0x7L,
+};
+
+enum DDS_ALPHA_MODE
+{
+    DDS_ALPHA_MODE_UNKNOWN       = 0,
+    DDS_ALPHA_MODE_STRAIGHT      = 1,
+    DDS_ALPHA_MODE_PREMULTIPLIED = 2,
+    DDS_ALPHA_MODE_OPAQUE        = 3,
+    DDS_ALPHA_MODE_CUSTOM        = 4,
+};
+
 typedef struct
 {
     DWORD dwSize;
@@ -109,6 +137,16 @@ typedef struct
     DWORD dwCubemapFlags;
     DWORD dwReserved2[3];
 } DDS_HEADER;
+
+typedef struct 
+{
+    DXGI_FORMAT dxgiFormat;
+    DDS_RESOURCE_DIMENSION resourceDimension;
+    DWORD miscFlag; // see DDS_RESOURCE_MISC_FLAG
+    DWORD arraySize;
+    DWORD miscFlags2; // see DDS_MISC_FLAGS2
+} DDS_HEADER_DXT10;
+
 
 #pragma pack(pop)
 
