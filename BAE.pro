@@ -91,20 +91,16 @@ zlib {
 }
 
 lz4 {
-        INCLUDEPATH += lib/lz4
+        INCLUDEPATH += lib/lz4f
+        DEFINES += LZ4_STATIC XXH_PRIVATE_API
 
         HEADERS += \
-                lib/lz4/lz4.h \
-                lib/lz4/lz4frame.h \
-                lib/lz4/lz4frame_static.h \
-                lib/lz4/lz4hc.h \
-                lib/lz4/xxhash.h
+                lib/lz4f/lz4frame.h \
+                lib/lz4f/xxhash.h
 
         SOURCES += \
-                lib/lz4/lz4.c \
-                lib/lz4/lz4frame.c \
-                lib/lz4/lz4hc.c \
-                lib/lz4/xxhash.c
+                lib/lz4f/lz4frame.c \
+                lib/lz4f/xxhash.c
 }
 
 ###############################
