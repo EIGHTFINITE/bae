@@ -1,6 +1,7 @@
 #include "bsa.h"
 #include "dds.h"
 #include "zlib/zlib.h"
+#include "lz4f/lz4frame.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -128,7 +129,7 @@ bool BSA::canOpen( const QString & fn )
 			if ( f.read( (char *)&version, sizeof( version ) ) != 4 )
 				return false;
 
-			return (version == OB_BSAHEADER_VERSION || version == F3_BSAHEADER_VERSION);
+			return (version == OB_BSAHEADER_VERSION || version == F3_BSAHEADER_VERSION || version == SSE_BSAHEADER_VERSION);
 		} else {
 			return magic == MW_BSAHEADER_FILEID;
 		}
@@ -146,7 +147,7 @@ bool BSA::open()
 		if ( !bsa.open( QIODevice::ReadOnly ) )
 			throw QString( "file open" );
 
-		quint32 magic, version;
+		quint32 magic;
 
 		bsa.read( (char*)&magic, sizeof( magic ) );
 
@@ -229,7 +230,7 @@ bool BSA::open()
 		else if ( magic == OB_BSAHEADER_FILEID ) {
 			bsa.read( (char*)&version, sizeof( version ) );
 
-			if ( version != OB_BSAHEADER_VERSION && version != F3_BSAHEADER_VERSION )
+			if ( version != OB_BSAHEADER_VERSION && version != F3_BSAHEADER_VERSION && version != SSE_BSAHEADER_VERSION )
 				throw QString( "file version" );
 
 			OBBSAHeader header;
@@ -246,11 +247,17 @@ bool BSA::open()
 
 			compressToggle = header.ArchiveFlags & OB_BSAARCHIVE_COMPRESSFILES;
 
-			if ( version == F3_BSAHEADER_VERSION ) {
+			if ( version == F3_BSAHEADER_VERSION || version == SSE_BSAHEADER_VERSION ) {
 				namePrefix = header.ArchiveFlags & F3_BSAARCHIVE_PREFIXFULLFILENAMES;
 			}
 
-			if ( !bsa.seek( header.FolderRecordOffset + header.FolderNameLength + header.FolderCount * (1 + sizeof( OBBSAFolderInfo )) + header.FileCount * sizeof( OBBSAFileInfo ) ) )
+			int folderSize = 0;
+			if ( version != SSE_BSAHEADER_VERSION )
+				folderSize = sizeof( OBBSAFolderInfo );
+			else
+				folderSize = sizeof( SEBSAFolderInfo );
+
+			if ( !bsa.seek( header.FolderRecordOffset + header.FolderNameLength + header.FolderCount * (1 + folderSize) + header.FileCount * sizeof( OBBSAFileInfo ) ) )
 				throw QString( "file name seek" );
 
 			QByteArray fileNames( header.FileNameLength, char( 0 ) );
@@ -263,21 +270,34 @@ bool BSA::open()
 			if ( !bsa.seek( header.FolderRecordOffset ) )
 				throw QString( "folder info seek" );
 
-			QVector<OBBSAFolderInfo> folderInfos( header.FolderCount );
-			if ( bsa.read( (char *)folderInfos.data(), header.FolderCount * sizeof( OBBSAFolderInfo ) ) != header.FolderCount * sizeof( OBBSAFolderInfo ) )
-				throw QString( "folder info read" );
-
 			quint32 totalFileCount = 0;
+			bool ok = true;
 
-			for ( const OBBSAFolderInfo folderInfo : folderInfos ) {
-				// useless?
-				/*
-				qDebug() << __LINE__ << "position" << bsa.pos() << "offset" << folderInfo.offset;
-				if ( folderInfo.offset < header.FileNameLength || ! bsa.seek( folderInfo.offset - header.FileNameLength ) )
-				throw QString( "folder content seek" );
-				*/
+			QVector<BSAFolderInfo> folderInfos;
+			folderInfos.reserve( header.FolderCount );
+			for ( int i = 0; i < header.FolderCount; i++ ) {
+				BSAFolderInfo info{0};
 
+				// Hash
+				ok &= bsa.read( (char *)&info, 8 ) == 8;
+				// Filesize
+				ok &= bsa.read( (char *)&info + 8, 4 ) == 4;
+				if ( version == SSE_BSAHEADER_VERSION ) {
+					// Unknown value & Offset
+					ok &= bsa.read( (char *)&info + 12, 12 ) == 12;
+				} else {
+					// Offset
+					// Note: this is reading a uint32 into a uint64 whose memory must be zeroed.
+					ok &= bsa.read( (char *)&info + 16, 4 ) == 4;
+				}
 
+				if ( !ok )
+					throw QString( "folder info read" );
+
+				folderInfos << info;
+			}
+
+			for ( const BSAFolderInfo folderInfo : folderInfos ) {
 				QString folderName;
 				if ( !BSAReadSizedString( bsa, folderName ) || folderName.isEmpty() ) {
 					//qDebug() << "folderName" << folderName;
@@ -413,14 +433,21 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 			if ( namePrefix ) {
 				char len;
 				ok = bsa.read( &len, 1 );
-				filesz -= len;
+				filesz -= len + 1;
 				if ( ok ) ok = bsa.seek( file->offset + 1 + len );
+			}
+
+			quint32 filesize = filesz;
+			if ( version == SSE_BSAHEADER_VERSION && file->sizeFlags > 0 && (file->compressed() ^ compressToggle) ) {
+				ok = bsa.read( (char*)&filesize, 4 );
+				filesz -= 4;
 			}
 
 			content.resize( filesz );
 			if ( ok && bsa.read( content.data(), filesz ) == filesz ) {
 				if ( file->sizeFlags > 0 && (file->compressed() ^ compressToggle) ) {
 					// BSA
+					if ( version != SSE_BSAHEADER_VERSION ) {
 #ifndef QT_NO_DEBUG
 					QByteArray tmp( content );
 					char a = tmp[0];
@@ -435,10 +462,26 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 
 					Q_ASSERT( qUncompress( tmp ) == gUncompress( tmp2, filesz - 4 ) );
 #endif
-					content.remove( 0, 4 );
-					QByteArray tmp3( content );
+						content.remove( 0, 4 );
+						QByteArray tmp3( content );
 
-					content = gUncompress( tmp3, filesz - 4 );
+						content = gUncompress( tmp3, filesz - 4 );
+					} else {
+						QByteArray tmp;
+						tmp.resize( filesize );
+
+						LZ4F_decompressionContext_t dCtx = nullptr;
+						LZ4F_createDecompressionContext( &dCtx, LZ4F_VERSION );
+						size_t dstSize = filesize;
+						size_t srcSize = tmp.size();
+
+						LZ4F_decompressOptions_t options = { 0 };
+
+						LZ4F_decompress( dCtx, tmp.data(), &dstSize, content.data(), &srcSize, &options );
+						LZ4F_freeDecompressionContext( dCtx );
+
+						content = tmp;
+					}
 
 				} else if ( file->packedLength > 0 && !file->tex.chunks.count() ) {
 					// General BA2
