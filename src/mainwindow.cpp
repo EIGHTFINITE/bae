@@ -194,6 +194,7 @@ void MainWindow::appendFile( const QString & file )
 	archiveProxyModel->setSourceModel( emptyModel );
 	archiveView->setModel( emptyModel );
 	archiveView->setSortingEnabled( false );
+	ui->btnBar->setEnabled( true );
 	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
 
 	auto handler = ArchiveHandler::openArchive( file );
