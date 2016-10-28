@@ -10,6 +10,9 @@
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QUrl>
 
 MainWindow::MainWindow( QWidget *parent )
 	: QMainWindow( parent ), ui( new Ui::MainWindow )
@@ -17,6 +20,8 @@ MainWindow::MainWindow( QWidget *parent )
 	ui->setupUi( this );
 
 	ui->mainToolBar->hide();
+
+	setAcceptDrops( true );
 
 	// Init Dialogs
 	aboutDialog = new AboutDialog( this );
@@ -287,5 +292,41 @@ void MainWindow::itemChanged( QStandardItem * item )
 		} else {
 			p->setCheckState( Qt::PartiallyChecked );
 		}
+	}
+}
+
+void MainWindow::dropEvent( QDropEvent * e )
+{
+	QStringList files;
+	QList<QUrl> urls = e->mimeData()->urls();
+	for ( QUrl url : urls )
+		files << url.toLocalFile();
+
+	if ( files.count() ) {
+		openFile( files.takeFirst() );
+		while ( files.count() > 0 )
+			appendFile( files.takeFirst() );
+	}
+}
+
+void MainWindow::dragEnterEvent( QDragEnterEvent * e )
+{
+	QStringList exts = { "bsa", "ba2" };
+
+	if ( e->mimeData()->hasUrls() ) {
+		QList<QUrl> urls = e->mimeData()->urls();
+		for ( auto url : urls ) {
+			if ( url.scheme() == "file" ) {
+				QString fn = url.toLocalFile();
+				QFileInfo finfo( fn );
+				if ( finfo.exists() && exts.contains( finfo.suffix(), Qt::CaseInsensitive ) )
+					continue;
+			}
+
+			e->ignore();
+			return;
+		}
+
+		e->accept();
 	}
 }

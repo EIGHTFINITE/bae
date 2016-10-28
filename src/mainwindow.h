@@ -7,11 +7,12 @@
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 
-
 class BSA;
 class BSAModel;
 class BSAProxyModel;
 class ProgressDialog;
+class QDropEvent;
+class QDragEnterEvent;
 
 namespace Ui {
 class MainWindow;
@@ -33,7 +34,11 @@ protected slots:
     void openDlg();
 	void extract();
 	void itemChanged( QStandardItem * item );
-    
+
+protected:
+	void dropEvent( QDropEvent * ev );
+	void dragEnterEvent( QDragEnterEvent * ev );
+
 private:
 	void recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList );
     
