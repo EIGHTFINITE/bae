@@ -38,6 +38,8 @@ private:
 	void recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList );
     
     Ui::MainWindow * ui;
+
+	QWidget * aboutDialog;
     
     QTreeView * archiveView;
     

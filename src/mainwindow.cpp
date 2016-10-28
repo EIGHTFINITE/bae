@@ -1,7 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "progressdialog.h"
+#include "ui/aboutdialog.h"
+#include "ui/progressdialog.h"
 #include "archive.h"
 #include "bsa.h"
 
@@ -17,6 +18,10 @@ MainWindow::MainWindow( QWidget *parent )
 
 	ui->mainToolBar->hide();
 
+	// Init Dialogs
+	aboutDialog = new AboutDialog( this );
+	progDlg = new ProgressDialog( this );
+
 	archiveView = ui->treeView;
 
 	archiveModel = new BSAModel( this );
@@ -30,7 +35,7 @@ MainWindow::MainWindow( QWidget *parent )
 	//archiveView->setModel( archiveProxyModel );
 	//archiveView->setSortingEnabled( true );
 
-	progDlg = new ProgressDialog( this );
+	connect( ui->aAbout, &QAction::triggered, aboutDialog, &AboutDialog::show );
 
 	connect( ui->aOpenFile, &QAction::triggered, this, &MainWindow::openDlg );
 
