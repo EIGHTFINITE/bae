@@ -39,17 +39,20 @@ SOURCES += \
 	src/mainwindow.cpp \
 	src/archive.cpp \
 	src/bsa.cpp \
-	src/progressdialog.cpp
+	src/ui/aboutdialog.cpp \
+	src/ui/progressdialog.cpp \
 
 HEADERS += \
 	src/mainwindow.h \
 	src/archive.h \
 	src/bsa.h \
-	src/progressdialog.h \
+	src/ui/aboutdialog.h \
+	src/ui/progressdialog.h \
 	lib/dds.h
 
 FORMS += ui/mainwindow.ui \
-	ui/progressdialog.ui
+	ui/progressdialog.ui \
+	ui/aboutdialog.ui
 
 
 ###############################
