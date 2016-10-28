@@ -134,3 +134,6 @@ lz4 {
 	#  Extension flags
 	QMAKE_CXXFLAGS_RELEASE *= -msse2 -msse
 }
+
+win32:RC_FILE = res/bae.rc
+win32:RC_ICONS += res/bae.ico
