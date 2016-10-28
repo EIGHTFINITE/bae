@@ -69,12 +69,9 @@ void MainWindow::openDlg()
 {
 	QStringList files = QFileDialog::getOpenFileNames( this, tr( "Open File" ), "", "All Files (*.bsa *.ba2);;BSA (*.bsa);;BA2 (*.ba2)" );
 	if ( files.count() ) {
-
 		openFile( files.takeFirst() );
-
-		while ( files.count() > 0 ) {
+		while ( files.count() > 0 )
 			appendFile( files.takeFirst() );
-		}
 	}
 
 }
@@ -182,7 +179,7 @@ void MainWindow::openFile( const QString & file )
 	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
 
 	archiveModel->init();
-	setWindowFilePath( file );
+	numOpenFiles = 0;
 
 	appendFile( file );
 }
@@ -202,6 +199,10 @@ void MainWindow::appendFile( const QString & file )
 
 	auto bsa = handler->getArchive<BSA *>();
 	if ( bsa ) {
+		if ( numOpenFiles > 0 )
+			setWindowFilePath( QString( "%1 and %2 other files" ).arg( file ).arg( numOpenFiles ) );
+		else
+			setWindowFilePath( file );
 
 		bsaHash.insert( bsa->path(), bsa );
 
@@ -226,6 +227,8 @@ void MainWindow::appendFile( const QString & file )
 		// Sort proxy after model/view is populated
 		archiveProxyModel->sort( 0, Qt::AscendingOrder );
 		archiveProxyModel->resetFilter();
+
+		numOpenFiles++;
 	}
 }
 

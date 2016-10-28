@@ -52,6 +52,7 @@ private:
 	
 	ProgressDialog * progDlg;
 	
+	uint32_t numOpenFiles;
 	bool process = false;
 };
 
