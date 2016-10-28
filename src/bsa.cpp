@@ -804,7 +804,12 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 bool BSA::fillModel( const BSAModel * bsaModel, const QString & folder )
 {
 	//filesScanned = 0;
-	return scan( getFolder( folder ), bsaModel->invisibleRootItem(), folder );
+	auto fileItem = new QStandardItem( bsaName );
+	auto pathDummy = new QStandardItem( "" );
+	auto bsaDummy = new QStandardItem( "" );
+
+	bsaModel->invisibleRootItem()->appendRow( { fileItem, pathDummy, bsaDummy } );
+	return scan( getFolder( folder ), fileItem, folder );
 }
 
 BSAModel::BSAModel( QObject * parent )
