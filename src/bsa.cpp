@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QStringBuilder>
 
 
 quint32 BSA::BSAFile::size() const
@@ -766,7 +767,7 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 
 		// Recurse through folders
 		if ( children.count() ) {
-			QString fullpath = ((path.isEmpty()) ? path : path + "/") + i.key();
+			QString fullpath = ((path.isEmpty()) ? path : path % "/") % i.key();
 			scan( i.value(), folderItem, fullpath );
 		}
 
@@ -774,7 +775,7 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 		if ( files.count() ) {
 			QHash<QString, BSA::BSAFile *>::const_iterator f;
 			for ( f = files.begin(); f != files.end(); f++ ) {
-				QString fullpath = path + "/" + i.key() + "/" + f.key();
+				QString fullpath = path % "/" % i.key() % "/" % f.key();
 
 				//int bytes = f.value()->size();
 				//QString filesize = (bytes > 1024) ? QString::number( bytes / 1024 ) + "KB" : QString::number( bytes ) + "B";
