@@ -13,6 +13,8 @@
 #include <QDropEvent>
 #include <QMimeData>
 #include <QUrl>
+#include <QRegularExpression>
+#include <QStringBuilder>
 
 MainWindow::MainWindow( QWidget *parent )
 	: QMainWindow( parent ), ui( new Ui::MainWindow )
@@ -98,6 +100,44 @@ void MainWindow::recurseModel( QStandardItem * item, QList<QStandardItem *> & it
 		}
 	}
 }
+
+void MainWindow::openFileFilter( const QString & filepath )
+{
+	QFile inputFile( filepath );
+	if ( inputFile.open( QIODevice::ReadOnly ) ) {
+		QStringList filters;
+		QTextStream istr( &inputFile );
+		while ( !istr.atEnd() ) {
+			QString line = istr.readLine();
+			if ( line.startsWith( "#" ) || line.trimmed() == "" )
+				continue;
+
+			// Escape periods, convert wildcard to regex
+			line.replace( ".", "\\." ).replace( "*", ".*" );
+
+			filters << line;
+		} inputFile.close();
+
+		QRegularExpression re( "(" % filters.join( "|" ) % ")", QRegularExpression::CaseInsensitiveOption );
+
+		// Uncheck everything first
+		auto root = archiveModel->invisibleRootItem();
+		for ( int i = 0; i < root->rowCount(); i++ )
+			root->child( i, 0 )->setCheckState( Qt::Unchecked );
+
+		std::vector<QStandardItem *> itemList;
+		getAllItems( root, NameCol, true, itemList );
+
+		// Check all items matching our filters
+		for ( auto i : itemList ) {
+			auto path = i->index().data( Qt::EditRole ).toString();
+			QRegularExpressionMatch match = re.match( path );
+			if ( match.hasMatch() )
+				i->setCheckState( Qt::Checked );
+		}
+	}
+}
+
 
 void MainWindow::cancelExtract()
 {
@@ -303,11 +343,17 @@ void MainWindow::dropEvent( QDropEvent * e )
 	for ( QUrl url : urls )
 		files << url.toLocalFile();
 
-	if ( files.count() ) {
-		openFile( files.takeFirst() );
-		while ( files.count() > 0 )
-			appendFile( files.takeFirst() );
+	if ( !files.count() )
+		return;
+
+	if ( files.at(0).endsWith( ".txt", Qt::CaseInsensitive ) ) {
+		openFileFilter( files.takeFirst() );
+		return;
 	}
+
+	openFile( files.takeFirst() );
+	while ( files.count() > 0 )
+		appendFile( files.takeFirst() );
 }
 
 void MainWindow::dragEnterEvent( QDragEnterEvent * e )
@@ -320,6 +366,13 @@ void MainWindow::dragEnterEvent( QDragEnterEvent * e )
 			if ( url.scheme() == "file" ) {
 				QString fn = url.toLocalFile();
 				QFileInfo finfo( fn );
+
+				if ( archiveModel->invisibleRootItem()->rowCount() ) {
+					// File Filter needs BSAs to be open first
+					if ( finfo.exists() && finfo.suffix().endsWith( "txt", Qt::CaseInsensitive ) )
+						continue;
+				}
+
 				if ( finfo.exists() && exts.contains( finfo.suffix(), Qt::CaseInsensitive ) )
 					continue;
 			}

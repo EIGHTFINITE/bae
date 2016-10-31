@@ -41,6 +41,8 @@ protected:
 
 private:
 	void recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList );
+
+	void openFileFilter( const QString & filepath );
     
     Ui::MainWindow * ui;
 
