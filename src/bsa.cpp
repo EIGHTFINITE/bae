@@ -473,7 +473,7 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 						LZ4F_decompressionContext_t dCtx = nullptr;
 						LZ4F_createDecompressionContext( &dCtx, LZ4F_VERSION );
 						size_t dstSize = filesize;
-						size_t srcSize = tmp.size();
+						size_t srcSize = content.size();
 
 						LZ4F_decompressOptions_t options = { 0 };
 
