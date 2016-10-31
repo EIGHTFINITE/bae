@@ -396,6 +396,7 @@ void BSA::close()
 	root.children.clear();
 	root.files.clear();
 	folders.clear();
+	files.clear();
 }
 
 qint64 BSA::fileCount() const
@@ -656,6 +657,7 @@ BSA::BSAFolder * BSA::insertFolder( QString name )
 		//qDebug() << "inserting" << name;
 
 		folder = new BSAFolder;
+		folder->name = name;
 		folders.insert( name, folder );
 
 		int p = name.lastIndexOf( "/" );
@@ -676,8 +678,9 @@ BSA::BSAFile * BSA::insertFile( BSAFolder * folder, QString name, quint32 sizeFl
 	BSAFile * file = new BSAFile;
 	file->sizeFlags = sizeFlags;
 	file->offset = offset;
-
 	folder->files.insert( name, file );
+
+	files.insert( QString( folder->name % "/" % name ).toLower(), file );
 	return file;
 }
 
@@ -690,6 +693,7 @@ BSA::BSAFile * BSA::insertFile( BSAFolder * folder, QString name, quint32 packed
 	file->offset = offset;
 	folder->files.insert( name, file );
 
+	files.insert( QString( folder->name % "/" % name ).toLower(), file );
 	return file;
 }
 
@@ -703,19 +707,7 @@ const BSA::BSAFolder * BSA::getFolder( QString fn ) const
 
 const BSA::BSAFile * BSA::getFile( QString fn ) const
 {
-	QString folderName;
-	QString fileName = fn;
-	int p = fn.lastIndexOf( "/" );
-	if ( p >= 0 ) {
-		folderName = fn.left( p );
-		fileName = fn.right( fn.length() - p - 1 );
-	}
-
-	if ( const BSAFolder * folder = getFolder( folderName ) ) {
-		return folder->files.value( fileName );
-	} else {
-		return nullptr;
-	}
+	return files.value( fn.toLower() );
 }
 
 bool BSA::hasFile( const QString & fn ) const

@@ -269,6 +269,7 @@ public:
 		//! Destructor
 		~BSAFolder() { qDeleteAll( children ); qDeleteAll( files ); }
 		
+		QString name;
 		BSAFolder * parent; //!< The parent item
 		QHash<QString, BSAFolder*> children; //!< A map of child folders
 		QHash<QString, BSAFile*> files; //!< A map of files inside the folder
@@ -315,7 +316,10 @@ protected:
 	QHash<QString, BSAFolder*> folders;
 	//! The root folder
 	BSAFolder root;
-	
+
+	//! Map of files inside a %BSA
+	QHash<QString, BSAFile*> files;
+
 	//! Error string for exception handling
 	QString status;
 	
