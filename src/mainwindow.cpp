@@ -17,6 +17,9 @@
 #include <QRegularExpression>
 #include <QStringBuilder>
 
+#include <QTimer>
+#include <QLineEdit>
+
 MainWindow::MainWindow( QWidget *parent )
 	: QMainWindow( parent ), ui( new Ui::MainWindow )
 {
@@ -238,6 +241,28 @@ void MainWindow::openFile( const QString & file )
 	}
 
 	appendFile( file );
+
+	// Filter
+	auto filterTimer = new QTimer( this );
+	filterTimer->setSingleShot( true );
+
+	connect( ui->archiveFilter, &QLineEdit::textChanged, [filterTimer, this]() { filterTimer->start( 300 ); } );
+	connect( filterTimer, &QTimer::timeout, [this]() {
+		auto text = ui->archiveFilter->text();
+
+		archiveProxyModel->setFilterRegExp( QRegExp( text, Qt::CaseInsensitive, QRegExp::Wildcard ) );
+		archiveView->expandAll();
+
+		if ( text.isEmpty() ) {
+			archiveView->collapseAll();
+			archiveProxyModel->resetFilter();
+		}
+	} );
+
+	connect( ui->archiveFilenameOnly, &QCheckBox::toggled, archiveProxyModel, &BSAProxyModel::setFilterByNameOnly );
+
+	// Update filter when switching open archives
+	filterTimer->start( 0 );
 }
 
 void MainWindow::appendFile( const QString & file )
@@ -246,6 +271,7 @@ void MainWindow::appendFile( const QString & file )
 	archiveView->setModel( emptyModel );
 	archiveView->setSortingEnabled( false );
 	ui->btnBar->setEnabled( true );
+	ui->filterFrame->setEnabled( true );
 	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
 
 	auto handler = ArchiveHandler::openArchive( file );
