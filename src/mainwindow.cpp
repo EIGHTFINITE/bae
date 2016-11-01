@@ -246,7 +246,7 @@ void MainWindow::openFile( const QString & file )
 	auto filterTimer = new QTimer( this );
 	filterTimer->setSingleShot( true );
 
-	connect( ui->archiveFilter, &QLineEdit::textChanged, [filterTimer, this]() { filterTimer->start( 300 ); } );
+	connect( ui->archiveFilter, &QLineEdit::textEdited, [filterTimer, this]() { filterTimer->start( 300 ); } );
 	connect( filterTimer, &QTimer::timeout, [this]() {
 		auto text = ui->archiveFilter->text();
 
@@ -261,8 +261,7 @@ void MainWindow::openFile( const QString & file )
 
 	connect( ui->archiveFilenameOnly, &QCheckBox::toggled, archiveProxyModel, &BSAProxyModel::setFilterByNameOnly );
 
-	// Update filter when switching open archives
-	filterTimer->start( 0 );
+	ui->archiveFilter->setText("");
 }
 
 void MainWindow::appendFile( const QString & file )
