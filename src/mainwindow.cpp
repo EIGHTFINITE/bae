@@ -3,6 +3,7 @@
 
 #include "ui/aboutdialog.h"
 #include "ui/progressdialog.h"
+#include "extractor.h"
 #include "archive.h"
 #include "bsa.h"
 
@@ -50,18 +51,14 @@ MainWindow::MainWindow( QWidget *parent )
 
 	connect( ui->btnSelectAll, &QPushButton::pressed, [this]() {
 		auto c = archiveModel->rowCount();
-
 		for ( int i = 0; i < c; i++ ) {
 			archiveModel->item( i, 0 )->setCheckState( Qt::Checked );
 		}
 	} );
 
 	connect( ui->btnSelectNone, &QPushButton::pressed, [this]() {
-		auto c = archiveModel->rowCount();
-
-		for ( int i = 0; i < c; i++ ) {
+		for ( int i = 0; i < archiveModel->rowCount(); i++ )
 			archiveModel->item( i, 0 )->setCheckState( Qt::Unchecked );
-		}
 	} );
 
 	connect( progDlg, &ProgressDialog::cancel, this, &MainWindow::cancelExtract );
@@ -69,6 +66,7 @@ MainWindow::MainWindow( QWidget *parent )
 
 MainWindow::~MainWindow()
 {
+	qDeleteAll( openArchives );
 	delete ui;
 }
 
@@ -83,20 +81,35 @@ void MainWindow::openDlg()
 
 }
 
-void MainWindow::recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList )
+
+void MainWindow::getAllItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList )
 {
+	for ( int i = 0; i < item->rowCount(); i++ ) {
+		auto child = item->child( i, 0 );
+		if ( folders || !child->hasChildren() )
+			itemList.push_back( item->child( i, column ) );
+
+		getAllItems( child, column, folders, itemList );
+	}
+}
+
+void MainWindow::getCheckedItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList )
+{
+
+	bool filtered = !archiveProxyModel->mapFromSource( item->index() ).isValid();
+	if ( filtered && item->parent() )
+		return;
+
 	if ( !item->parent() || (item->hasChildren() && item->checkState() != Qt::Unchecked) ) {
-		bool result = false;
 		for ( int i = 0; i < item->rowCount(); i++ ) {
 			auto child = item->child( i, 0 );
-			if ( child->checkState() != Qt::Unchecked ) {
-				if ( !child->hasChildren() ) {
-					itemList.append( item->child( i, 1 ) );
-					result |= true;
-				} else {
-					recurseModel( child, itemList );
-				}
-			}
+			if ( child->checkState() == Qt::Unchecked || !archiveProxyModel->mapFromSource( child->index() ).isValid() )
+				continue;
+
+			if ( folders || !child->hasChildren() )
+				itemList.push_back( item->child( i, column ) );
+
+			getCheckedItems( child, column, folders, itemList );
 		}
 	}
 }
@@ -144,12 +157,35 @@ void MainWindow::cancelExtract()
 	process = false;
 }
 
+
 void MainWindow::extract()
 {
-	QList<QStandardItem *> itemList;
-	recurseModel( archiveModel->invisibleRootItem(), itemList );
+	std::vector<QStandardItem *> itemList;
+	getCheckedItems( archiveModel->invisibleRootItem(), FilepathCol, false, itemList );
 
-	if ( !itemList.count() )
+	QVector<QString> dirList;
+	QHash<QString, QVector<QString>> fileTree;
+	fileTree.reserve( archiveModel->invisibleRootItem()->rowCount() );
+
+	for ( const auto* i : itemList ) {
+		auto file = i->index().data( Qt::EditRole ).toString();
+		if ( file.startsWith( "/" ) )
+			file.remove( 0, 1 );
+
+		auto bsaPath = i->index().sibling( i->row(), BSAPathCol ).data( Qt::EditRole ).toString();
+
+		fileTree[bsaPath] = fileTree[bsaPath] << file;
+
+		int slash = file.lastIndexOf( "/" );
+		if ( slash < 0 )
+			return; // TODO: Message logger
+
+		auto dir = file.left( slash );
+		if ( !dirList.contains( dir ) )
+			dirList << file.left( slash );
+	}
+
+	if ( !itemList.size() || !fileTree.size() )
 		return;
 
 	QString dir = QFileDialog::getExistingDirectory( this, tr( "Select Folder" ),
@@ -159,58 +195,28 @@ void MainWindow::extract()
 	if ( dir.isEmpty() )
 		return;
 
+	progDlg->reset();
 	progDlg->show();
-	progDlg->setTotalFiles( itemList.count() );
+	progDlg->setTotalFiles( itemList.size() );
 	progDlg->setWindowTitle( "Extracting..." );
-
-	int num = 1;
 	process = true;
 
-	for ( auto i : itemList ) {
-		if ( !process ) {
-			progDlg->hide();
-			progDlg->setTotalFiles( 0 );
-			progDlg->setNumFiles( 0 );
-			break;
-		}
+	itemList.clear();
 
-		auto file = i->index().data( Qt::EditRole ).toString();
-		if ( file.startsWith( "/" ) )
-			file.remove( 0, 1 );
-
-		auto bsaPath = i->index().sibling( i->row(), 2 ).data( Qt::EditRole ).toString();
-
-		auto bsa = bsaHash.value( bsaPath );
-		if ( bsa ) {
-			QByteArray data;
-
-			if ( bsa->fileContents( file, data ) ) {
-				QFile f( dir + "/" + file );
-				QFileInfo finfo( f );
-	
-				QDir d( finfo.path() );
-				if ( !d.exists() )
-					d.mkpath( finfo.path() );
-	
-				if ( f.open( QIODevice::WriteOnly ) ) {
-					f.write( data );
-					f.close();
-				}
-			} else {
-				qWarning() << file << " did not extract correctly.";
-			}
-
-			qApp->processEvents();
-			progDlg->setNumFiles( num++ );
-
-			if ( progDlg->finished() ) {
-				progDlg->hide();
-			}
-
-		} else {
-			qCritical( "Filepath mismatch" );
-		}
+	// Make Directories
+	for ( const QString& d : dirList ) {
+		QString path = dir % "/" % d % "/";
+		QDir folder( path );
+		if ( !folder.exists() )
+			folder.mkpath( path );
 	}
+
+	Extractor * extract = new Extractor( dir, fileTree, openArchives );
+	connect( progDlg, &ProgressDialog::cancel, extract, &Extractor::abort );
+	connect( extract, &Extractor::finished, progDlg, &ProgressDialog::checkDone );
+	connect( extract, &Extractor::fileWritten, progDlg, &ProgressDialog::advance );
+	connect( extract, &Extractor::finished, extract, &Extractor::deleteLater );
+	extract->start();
 }
 
 void MainWindow::openFile( const QString & file )
@@ -226,6 +232,11 @@ void MainWindow::openFile( const QString & file )
 	archiveModel->init();
 	numOpenFiles = 0;
 
+	if ( openArchives.size() ) {
+		qDeleteAll( openArchives );
+		openArchives.clear();
+	}
+
 	appendFile( file );
 }
 
@@ -239,6 +250,7 @@ void MainWindow::appendFile( const QString & file )
 
 	auto handler = ArchiveHandler::openArchive( file );
 	if ( !handler ) {
+		// TODO: Message logger
 		qDebug() << "Handler error";
 		return;
 	}
@@ -250,7 +262,7 @@ void MainWindow::appendFile( const QString & file )
 		else
 			setWindowFilePath( file );
 
-		bsaHash.insert( bsa->path(), bsa );
+		openArchives.insert( bsa->path(), bsa );
 
 		// Populate model from BSA
 		bsa->fillModel( archiveModel );

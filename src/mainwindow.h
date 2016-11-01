@@ -7,6 +7,8 @@
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 
+#include <vector>
+
 class BSA;
 class BSAModel;
 class BSAProxyModel;
@@ -30,6 +32,13 @@ public:
 	void appendFile( const QString & filepath );
 	void cancelExtract();
 
+	enum
+	{
+		NameCol,
+		FilepathCol,
+		BSAPathCol
+	};
+
 protected slots:
     void openDlg();
 	void extract();
@@ -40,7 +49,8 @@ protected:
 	void dragEnterEvent( QDragEnterEvent * ev );
 
 private:
-	void recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList );
+	void getAllItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList );
+	void getCheckedItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList );
 
 	void openFileFilter( const QString & filepath );
     
@@ -55,7 +65,7 @@ private:
 
 	QStandardItemModel * emptyModel;
 	
-	QHash<QString, BSA *> bsaHash;
+	QHash<QString, BSA *> openArchives;
 	
 	ProgressDialog * progDlg;
 	

@@ -39,13 +39,15 @@ SOURCES += \
 	src/mainwindow.cpp \
 	src/archive.cpp \
 	src/bsa.cpp \
+	src/extractor.cpp \
 	src/ui/aboutdialog.cpp \
-	src/ui/progressdialog.cpp \
+	src/ui/progressdialog.cpp
 
 HEADERS += \
 	src/mainwindow.h \
 	src/archive.h \
 	src/bsa.h \
+	src/extractor.h \
 	src/ui/aboutdialog.h \
 	src/ui/progressdialog.h \
 	lib/dds.h
