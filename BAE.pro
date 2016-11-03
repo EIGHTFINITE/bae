@@ -142,3 +142,6 @@ lz4 {
 
 win32:RC_FILE = res/bae.rc
 win32:RC_ICONS += res/bae.ico
+
+RESOURCES += \
+    res/bae.qrc

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/ui">
+        <file alias="drag-archives">ui/drag-archives.png</file>
+    </qresource>
+</RCC>
