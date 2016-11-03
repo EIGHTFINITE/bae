@@ -7,6 +7,9 @@
 *.userosscache
 *.sln.docstates
 
+# Qt Creator
+*.pro.user*
+
 # Build results
 [Gg]enerated[Ff]iles/
 [Dd]ebug/
@@ -86,6 +89,8 @@ ipch/
 *.opensdf
 *.sdf
 *.cachefile
+*.VC.db
+*.VC.VC.opendb
 
 # Visual Studio profiler
 *.psess
