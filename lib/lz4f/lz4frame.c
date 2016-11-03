@@ -1524,7 +1524,7 @@ You can contact the author at :
 #define MAXD_MASK (MAXD - 1)
 
 #define HASH_LOG (DICTIONARY_LOGSIZE-1)
-#define HASHTABLESIZE (1 << HASH_LOG)
+#define HASHTABLESIZEHC (1 << HASH_LOG)
 #define HASH_MASK (HASHTABLESIZE - 1)
 
 #define OPTIMAL_ML (int)((ML_MASK-1)+MINMATCH)
@@ -1535,7 +1535,7 @@ You can contact the author at :
   **************************************/
   typedef struct
   {
-	  U32   hashTable[HASHTABLESIZE];
+	  U32   hashTable[HASHTABLESIZEHC];
 	  U16   chainTable[MAXD];
 	  const BYTE* end;        /* next block here to continue on current prefix */
 	  const BYTE* base;       /* All index relative to this position */
