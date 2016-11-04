@@ -22,9 +22,19 @@ inline Extractor::~Extractor()
 	delete mutex;
 }
 
-bool Extractor::getTerminateRequested()
+bool Extractor::getTerminateRequested() const
 {
 	return terminateRequested;
+}
+
+bool Extractor::getIncludeDirectories() const
+{
+	return includeDirectories;
+}
+
+void Extractor::setIncludeDirectories( bool incl )
+{
+	includeDirectories = incl;
 }
 
 void Extractor::run()
@@ -107,12 +117,22 @@ void ExtractorTask::setManager( Extractor * mgr )
 	manager = mgr;
 }
 
+QString removeDirectory( const QString & str )
+{
+	QString tmp = str;
+	return tmp.remove( 0, tmp.lastIndexOf( "/" ) + 1 );
+}
+
 void ExtractorTask::run()
 {
 	for ( const QString & file : files ) {
 		QByteArray fileData;
 		if ( archive->fileContents( file, fileData ) ) {
-			QFile f( directory % "/" % file );
+			QString filename = file;
+			if ( !manager->getIncludeDirectories() )
+				filename = removeDirectory( file );
+
+			QFile f( directory % "/" % filename );
 			if ( f.open( QIODevice::WriteOnly ) ) {
 				f.write( fileData );
 				f.close();

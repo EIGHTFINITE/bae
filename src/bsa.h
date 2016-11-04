@@ -332,6 +332,7 @@ protected:
 	bool namePrefix = false;
 };
 
+
 class BSAModel : public QStandardItemModel
 {
 	Q_OBJECT
@@ -342,6 +343,8 @@ public:
 	void init();
 
 	Qt::ItemFlags flags( const QModelIndex & index ) const override;
+	QMimeData * mimeData( const QModelIndexList & indexes ) const override;
+	Qt::DropActions supportedDragActions() const override;
 };
 
 
@@ -355,6 +358,9 @@ public:
 	void setFiletypes( QStringList types );
 
 	void resetFilter();
+
+	Qt::ItemFlags flags( const QModelIndex & index ) const override;
+	Qt::DropActions supportedDragActions() const override;
 
 public slots:
 	void setFilterByNameOnly( bool nameOnly );

@@ -3,6 +3,7 @@
 
 #include "ui/aboutdialog.h"
 #include "ui/progressdialog.h"
+
 #include "extractor.h"
 #include "archive.h"
 #include "bsa.h"
@@ -34,6 +35,17 @@ MainWindow::MainWindow( QWidget *parent )
 	progDlg = new ProgressDialog( this );
 
 	archiveView = ui->treeView;
+	archiveView->setWindow( this );
+
+	// Style upon opening with no archives
+	archiveView->setStyleSheet( R"qss(
+		border: 5px dashed #AAA;
+		border-radius: 32px;
+		background: transparent;
+		background-image: url(:/ui/drag-archives);
+		background-position: center;
+		background-repeat: no-repeat;
+	)qss" );
 
 	archiveModel = new BSAModel( this );
 	archiveProxyModel = new BSAProxyModel( this );
@@ -53,24 +65,53 @@ MainWindow::MainWindow( QWidget *parent )
 	connect( ui->btnExtract, &QPushButton::pressed, this, &MainWindow::extract );
 
 	connect( ui->btnSelectAll, &QPushButton::pressed, [this]() {
+		pause();
 		auto c = archiveModel->rowCount();
-		for ( int i = 0; i < c; i++ ) {
+		for ( int i = 0; i < c; i++ )
 			archiveModel->item( i, 0 )->setCheckState( Qt::Checked );
-		}
+		unpause();
 	} );
 
 	connect( ui->btnSelectNone, &QPushButton::pressed, [this]() {
+		pause();
 		for ( int i = 0; i < archiveModel->rowCount(); i++ )
 			archiveModel->item( i, 0 )->setCheckState( Qt::Unchecked );
+		unpause();
 	} );
-
-	connect( progDlg, &ProgressDialog::cancel, this, &MainWindow::cancelExtract );
 }
 
 MainWindow::~MainWindow()
 {
 	qDeleteAll( openArchives );
 	delete ui;
+}
+
+
+void MainWindow::pause()
+{
+	// Disconnect model from view and main window for faster model updating
+	archiveProxyModel->setSourceModel( emptyModel );
+	archiveView->setModel( emptyModel );
+	archiveView->setSortingEnabled( false );
+	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
+}
+
+void MainWindow::unpause()
+{
+	// Reconnect model to view and main window
+	archiveProxyModel->setSourceModel( archiveModel );
+	archiveView->setModel( archiveProxyModel );
+	archiveView->setSortingEnabled( true );
+	connect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
+
+	archiveModel->init();
+
+	// Set treeview layout
+	archiveView->hideColumn( 1 );
+	archiveView->hideColumn( 2 );
+	archiveView->setColumnWidth( 0, 300 );
+	//archiveView->setColumnWidth( 2, 50 );
+	archiveView->header()->setSortIndicator( NameCol, Qt::SortOrder::AscendingOrder );
 }
 
 void MainWindow::openDlg()
@@ -155,9 +196,14 @@ void MainWindow::openFileFilter( const QString & filepath )
 }
 
 
-void MainWindow::cancelExtract()
+Extractor * MainWindow::getExtractor( const QString & dir, const QHash<QString, QVector<QString>> & fileTree ) const
 {
-	process = false;
+	Extractor * extract = new Extractor( dir, fileTree, openArchives );
+	connect( progDlg, &ProgressDialog::cancel, extract, &Extractor::abort );
+	connect( extract, &Extractor::finished, progDlg, &ProgressDialog::checkDone );
+	connect( extract, &Extractor::fileWritten, progDlg, &ProgressDialog::advance );
+	connect( extract, &Extractor::finished, extract, &Extractor::deleteLater );
+	return extract;
 }
 
 
@@ -185,7 +231,7 @@ void MainWindow::extract()
 
 		auto dir = file.left( slash );
 		if ( !dirList.contains( dir ) )
-			dirList << file.left( slash );
+			dirList << dir;
 	}
 
 	if ( !itemList.size() || !fileTree.size() )
@@ -202,7 +248,6 @@ void MainWindow::extract()
 	progDlg->show();
 	progDlg->setTotalFiles( itemList.size() );
 	progDlg->setWindowTitle( "Extracting..." );
-	process = true;
 
 	itemList.clear();
 
@@ -214,25 +259,23 @@ void MainWindow::extract()
 			folder.mkpath( path );
 	}
 
-	Extractor * extract = new Extractor( dir, fileTree, openArchives );
-	connect( progDlg, &ProgressDialog::cancel, extract, &Extractor::abort );
-	connect( extract, &Extractor::finished, progDlg, &ProgressDialog::checkDone );
-	connect( extract, &Extractor::fileWritten, progDlg, &ProgressDialog::advance );
-	connect( extract, &Extractor::finished, extract, &Extractor::deleteLater );
+	Extractor * extract = getExtractor( dir, fileTree );
 	extract->start();
 }
 
 void MainWindow::openFile( const QString & file )
 {
+	// Clear style
+	archiveView->setStyleSheet( "" );
+	// Enable UI
+	ui->btnBar->setEnabled( true );
+	ui->filterFrame->setEnabled( true );
+	ui->btnExtract->setEnabled( true );
+
 	// Clear models and connections
 	archiveModel->clear();
 	archiveProxyModel->clear();
-	archiveProxyModel->setSourceModel( emptyModel );
-	archiveView->setModel( emptyModel );
-	archiveView->setSortingEnabled( false );
-	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
-
-	archiveModel->init();
+	
 	numOpenFiles = 0;
 
 	if ( openArchives.size() ) {
@@ -266,12 +309,7 @@ void MainWindow::openFile( const QString & file )
 
 void MainWindow::appendFile( const QString & file )
 {
-	archiveProxyModel->setSourceModel( emptyModel );
-	archiveView->setModel( emptyModel );
-	archiveView->setSortingEnabled( false );
-	ui->btnBar->setEnabled( true );
-	ui->filterFrame->setEnabled( true );
-	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
+	pause();
 
 	auto handler = ArchiveHandler::openArchive( file );
 	if ( !handler ) {
@@ -296,16 +334,7 @@ void MainWindow::appendFile( const QString & file )
 		}
 
 		// Set proxy and view only after filling source model
-		archiveProxyModel->setSourceModel( archiveModel );
-		archiveView->setModel( archiveProxyModel );
-		archiveView->setSortingEnabled( true );
-
-		connect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
-
-		archiveView->hideColumn( 1 );
-		archiveView->hideColumn( 2 );
-		archiveView->setColumnWidth( 0, 300 );
-		//archiveView->setColumnWidth( 2, 50 );
+		unpause();
 
 		// Sort proxy after model/view is populated
 		archiveProxyModel->sort( 0, Qt::AscendingOrder );

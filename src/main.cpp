@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QStack>
@@ -33,6 +34,8 @@ int main(int argc, char *argv[])
 
 	a.setApplicationName( "Bethesda Archive Extractor" );
 	a.setApplicationDisplayName( "B.A.E." );
+
+	QDir::setCurrent( qApp->applicationDirPath() );
 
     w.show();
 

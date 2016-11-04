@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>372</width>
-    <height>516</height>
+    <width>384</width>
+    <height>580</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -18,11 +18,14 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>5</number>
+    </property>
     <property name="topMargin">
-     <number>3</number>
+     <number>5</number>
     </property>
     <property name="bottomMargin">
-     <number>3</number>
+     <number>0</number>
     </property>
     <item>
      <widget class="QFrame" name="btnBar">
@@ -36,6 +39,9 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="spacing">
+        <number>5</number>
+       </property>
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -90,6 +96,9 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <property name="spacing">
+        <number>5</number>
+       </property>
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -103,7 +112,14 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QLineEdit" name="archiveFilter"/>
+        <widget class="QLineEdit" name="archiveFilter">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>24</height>
+          </size>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="archiveFilenameOnly">
@@ -116,10 +132,16 @@
      </widget>
     </item>
     <item>
-     <widget class="QTreeView" name="treeView"/>
+     <widget class="BSATreeView" name="treeView"/>
     </item>
     <item>
      <widget class="QPushButton" name="btnExtract">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">height: 25px;</string>
+      </property>
       <property name="text">
        <string>Extract</string>
       </property>
@@ -141,7 +163,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>372</width>
+     <width>384</width>
      <height>21</height>
     </rect>
    </property>
@@ -172,6 +194,13 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>BSATreeView</class>
+   <extends>QTreeView</extends>
+   <header>bsatreeview.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

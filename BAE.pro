@@ -39,6 +39,7 @@ SOURCES += \
 	src/mainwindow.cpp \
 	src/archive.cpp \
 	src/bsa.cpp \
+	src/bsatreeview.cpp \
 	src/extractor.cpp \
 	src/ui/aboutdialog.cpp \
 	src/ui/progressdialog.cpp
@@ -47,6 +48,7 @@ HEADERS += \
 	src/mainwindow.h \
 	src/archive.h \
 	src/bsa.h \
+	src/bsatreeview.h \
 	src/extractor.h \
 	src/ui/aboutdialog.h \
 	src/ui/progressdialog.h \

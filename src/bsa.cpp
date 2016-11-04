@@ -4,10 +4,13 @@
 #include "lz4f/lz4frame.h"
 
 #include <QByteArray>
+#include <QDataStream>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
+#include <QMimeData>
 #include <QStringBuilder>
 
 
@@ -480,7 +483,11 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 						LZ4F_decompressOptions_t options = { 0 };
 
 						LZ4F_decompress( dCtx, tmp.data(), &dstSize, content.data(), &srcSize, &options );
-						LZ4F_freeDecompressionContext( dCtx );
+						LZ4F_errorCode_t error = LZ4F_freeDecompressionContext( dCtx );
+						if ( error ) {
+							// TODO: Message logger
+							qDebug() << fn << "Error Code: " << error;
+						}
 
 						content = tmp;
 					}
@@ -805,6 +812,13 @@ bool BSA::fillModel( const BSAModel * bsaModel, const QString & folder )
 	return scan( getFolder( folder ), fileItem, folder );
 }
 
+enum Columns
+{
+	Name,
+	Filepath,
+	BSAPath
+};
+
 BSAModel::BSAModel( QObject * parent )
 	: QStandardItemModel( parent )
 {
@@ -819,14 +833,69 @@ void BSAModel::init()
 
 Qt::ItemFlags BSAModel::flags( const QModelIndex & index ) const
 {
-	return QStandardItemModel::flags( index ) ^ Qt::ItemIsEditable;
+	auto flags = QStandardItemModel::flags( index ) & ~(Qt::ItemIsEditable);
+	flags |= Qt::ItemIsDragEnabled;
+
+	return flags;
 }
 
+Qt::DropActions BSAModel::supportedDragActions() const
+{
+	return Qt::CopyAction;
+}
+
+
+QMimeData * BSAModel::mimeData( const QModelIndexList & indexes ) const
+{
+	QByteArray itemData;
+	QDataStream stream( &itemData, QIODevice::WriteOnly );
+
+	QVector<QString> filenames;
+	QHash<QString, QVector<QString>> files;
+	for ( auto & i : indexes ) {
+		auto filepath = i.sibling( i.row(), Columns::Filepath ).data().toString();
+		if ( filepath.startsWith( "/" ) )
+			filepath.remove( 0, 1 );
+
+		auto bsapath = i.sibling( i.row(), Columns::BSAPath ).data().toString();
+		files[bsapath] = files[bsapath] << filepath;
+
+		int slash = filepath.lastIndexOf( "/" );
+		if ( slash < 0 )
+			return nullptr; // TODO: Message logger
+
+		filenames << filepath.remove( 0, slash + 1 );
+	}
+
+	if ( !filenames.size() || !files.size() )
+		return nullptr; // TODO: Message logger
+
+	stream << files << filenames;
+
+	QMimeData * itemMimeData;
+	itemMimeData = new QMimeData;
+	itemMimeData->setData( "application/bae-archivedata", itemData );
+
+	return itemMimeData;
+}
 
 BSAProxyModel::BSAProxyModel( QObject * parent )
 	: QSortFilterProxyModel( parent )
 {
 
+}
+
+Qt::ItemFlags BSAProxyModel::flags( const QModelIndex & index ) const
+{
+	auto flags = QSortFilterProxyModel::flags( index ) & ~(Qt::ItemIsEditable);
+	flags |= Qt::ItemIsDragEnabled;
+
+	return flags;
+}
+
+Qt::DropActions BSAProxyModel::supportedDragActions() const
+{
+	return Qt::CopyAction;
 }
 
 void BSAProxyModel::setFiletypes( QStringList types )
@@ -850,8 +919,8 @@ bool BSAProxyModel::filterAcceptsRow( int sourceRow, const QModelIndex & sourceP
 {
 	if ( !filterRegExp().isEmpty() ) {
 
-		QModelIndex sourceIndex0 = sourceModel()->index( sourceRow, 0, sourceParent );
-		QModelIndex sourceIndex1 = sourceModel()->index( sourceRow, 1, sourceParent );
+		const QModelIndex sourceIndex0 = sourceModel()->index( sourceRow, 0, sourceParent );
+		const QModelIndex sourceIndex1 = sourceModel()->index( sourceRow, 1, sourceParent );
 		if ( sourceIndex0.isValid() ) {
 			// If children match, parent matches
 			int c = sourceModel()->rowCount( sourceIndex0 );
@@ -885,8 +954,8 @@ bool BSAProxyModel::lessThan( const QModelIndex & left, const QModelIndex & righ
 	QString leftString = sourceModel()->data( left ).toString();
 	QString rightString = sourceModel()->data( right ).toString();
 
-	QModelIndex leftChild = left.child( 0, 0 );
-	QModelIndex rightChild = right.child( 0, 0 );
+	const QModelIndex leftChild = left.child( 0, 0 );
+	const QModelIndex rightChild = right.child( 0, 0 );
 
 	if ( !leftChild.isValid() && rightChild.isValid() )
 		return false;

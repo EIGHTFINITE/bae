@@ -24,7 +24,10 @@ public:
 
 	Extractor::~Extractor();
 
-	bool getTerminateRequested();
+	bool getTerminateRequested() const;
+
+	bool getIncludeDirectories() const;
+	void setIncludeDirectories( bool incl );
 
 public slots:
 	void abort();
@@ -41,6 +44,8 @@ private:
 	QHash<QString, BSA *> openArchives;
 	QHash<QString, QVector<QString>> archives;
 	std::vector<ExtractorTask *> workers;
+
+	bool includeDirectories = true;
 
 	QMutex * mutex = nullptr;
 	bool terminateRequested = false;

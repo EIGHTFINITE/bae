@@ -12,9 +12,12 @@
 class BSA;
 class BSAModel;
 class BSAProxyModel;
+class BSATreeView;
+class Extractor;
 class ProgressDialog;
 class QDropEvent;
 class QDragEnterEvent;
+
 
 namespace Ui {
 class MainWindow;
@@ -30,7 +33,8 @@ public:
 
 	void openFile( const QString & filepath );
 	void appendFile( const QString & filepath );
-	void cancelExtract();
+
+	Extractor * getExtractor( const QString & dir, const QHash<QString, QVector<QString>> & fileTree ) const;
 
 	enum
 	{
@@ -49,6 +53,9 @@ protected:
 	void dragEnterEvent( QDragEnterEvent * ev );
 
 private:
+	void pause();
+	void unpause();
+
 	void getAllItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList );
 	void getCheckedItems( QStandardItem * item, int column, bool folders, std::vector<QStandardItem *> & itemList );
 
@@ -57,8 +64,8 @@ private:
     Ui::MainWindow * ui;
 
 	QWidget * aboutDialog;
-    
-    QTreeView * archiveView;
+
+    BSATreeView * archiveView;
     
     BSAModel * archiveModel;
     BSAProxyModel * archiveProxyModel;
@@ -70,7 +77,6 @@ private:
 	ProgressDialog * progDlg;
 	
 	uint32_t numOpenFiles;
-	bool process = false;
 };
 
 #endif // MAINWINDOW_H
