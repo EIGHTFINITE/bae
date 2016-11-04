@@ -121,9 +121,12 @@ lz4 {
 	# COMPILER FLAGS
 
 	#  Optimization flags
-	#QMAKE_CXXFLAGS_RELEASE *= -O2
+	QMAKE_CXXFLAGS_RELEASE -= /O2 
+	QMAKE_CXXFLAGS_RELEASE *= /Ox /GL 
 	#  Multithreaded compiling for Visual Studio
-	#QMAKE_CXXFLAGS += -MP
+	QMAKE_CXXFLAGS += -MP
+	# Linker flags
+	QMAKE_LFLAGS += /LTCG
 }
 
 *-g++ {
