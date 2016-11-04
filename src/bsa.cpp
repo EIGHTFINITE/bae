@@ -42,7 +42,7 @@ static bool BSAReadSizedString( QFile & bsa, QString & s )
 
 	QByteArray b( len, char( 0 ) );
 	if ( bsa.read( b.data(), len ) == len ) {
-		s = b;
+		s = QString::fromLatin1( b );
 		//qDebug() << "bailout on" << __FILE__ << "line" << __LINE__;
 		return true;
 	} else {
@@ -176,7 +176,7 @@ bool BSA::open()
 					QByteArray strdata( length, char( 0 ) );
 					bsa.read( strdata.data(), length );
 
-					filepaths.append( QString( strdata ) );
+					filepaths.append( QString::fromLatin1( strdata ) );
 				}
 			}
 
@@ -321,7 +321,7 @@ bool BSA::open()
 					if ( fileNameIndex >= header.FileNameLength )
 						throw QString( "file name size" );
 
-					QString fileName = (fileNames.data() + fileNameIndex);
+					QString fileName = QString::fromLatin1( fileNames.data() + fileNameIndex );
 					fileNameIndex += fileName.length() + 1;
 
 					insertFile( folder, fileName, fileInfo.sizeFlags, fileInfo.offset );
