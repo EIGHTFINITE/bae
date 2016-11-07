@@ -126,7 +126,7 @@ lz4 {
 	#  Multithreaded compiling for Visual Studio
 	QMAKE_CXXFLAGS += -MP
 	# Linker flags
-	QMAKE_LFLAGS += /LTCG
+	QMAKE_LFLAGS_RELEASE += /LTCG
 }
 
 *-g++ {
