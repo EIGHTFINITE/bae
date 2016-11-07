@@ -18,11 +18,11 @@ class Extractor : public QThread
 	Q_OBJECT
 
 public:
-	Extractor::Extractor( const QString & dir,
+	Extractor( const QString & dir,
 			   QHash<QString, QVector<QString>> fileTree,
 			   QHash<QString, BSA *> openFiles );
 
-	Extractor::~Extractor();
+	~Extractor();
 
 	bool getTerminateRequested() const;
 
@@ -56,11 +56,11 @@ class ExtractorTask : public QThread
 	Q_OBJECT
 
 public:
-	ExtractorTask::ExtractorTask( const QString & dir, 
-								  BSA * bsa, 
-								  const std::vector<QString> & list );
+	ExtractorTask( const QString & dir,
+				   BSA * bsa,
+				   const std::vector<QString> & list );
 
-	ExtractorTask::~ExtractorTask();
+	~ExtractorTask();
 
 	void setManager( Extractor * mgr );
 

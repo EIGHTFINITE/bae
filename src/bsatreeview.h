@@ -15,8 +15,8 @@ class BSATreeView : public QTreeView
 	Q_OBJECT
 
 public:
-	BSATreeView::BSATreeView( QWidget * parent );
-	BSATreeView::~BSATreeView();
+	BSATreeView( QWidget * parent );
+	~BSATreeView();
 
 	void setWindow( MainWindow * window );
 

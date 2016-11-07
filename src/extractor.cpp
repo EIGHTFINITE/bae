@@ -17,7 +17,7 @@ Extractor::Extractor( const QString & dir,
 	mutex = new QMutex();
 }
 
-inline Extractor::~Extractor()
+Extractor::~Extractor()
 {
 	delete mutex;
 }
