@@ -47,6 +47,8 @@ protected slots:
     void openDlg();
 	void extract();
 	void itemChanged( QStandardItem * item );
+	void selectAll();
+	void selectNone();
 
 protected:
 	void dropEvent( QDropEvent * ev );

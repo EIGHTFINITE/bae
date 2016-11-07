@@ -63,21 +63,8 @@ MainWindow::MainWindow( QWidget *parent )
 	connect( ui->aOpenFile, &QAction::triggered, this, &MainWindow::openDlg );
 
 	connect( ui->btnExtract, &QPushButton::pressed, this, &MainWindow::extract );
-
-	connect( ui->btnSelectAll, &QPushButton::pressed, [this]() {
-		pause();
-		auto c = archiveModel->rowCount();
-		for ( int i = 0; i < c; i++ )
-			archiveModel->item( i, 0 )->setCheckState( Qt::Checked );
-		unpause();
-	} );
-
-	connect( ui->btnSelectNone, &QPushButton::pressed, [this]() {
-		pause();
-		for ( int i = 0; i < archiveModel->rowCount(); i++ )
-			archiveModel->item( i, 0 )->setCheckState( Qt::Unchecked );
-		unpause();
-	} );
+	connect( ui->btnSelectAll, &QPushButton::pressed, this, &MainWindow::selectAll );
+	connect( ui->btnSelectNone, &QPushButton::pressed, this, &MainWindow::selectNone );
 }
 
 MainWindow::~MainWindow()
@@ -400,6 +387,31 @@ void MainWindow::itemChanged( QStandardItem * item )
 			p->setCheckState( Qt::PartiallyChecked );
 		}
 	}
+}
+
+void setAllChecked( QStandardItem * item, Qt::CheckState state )
+{
+	item->setCheckState( state );
+	for ( int i = 0; i < item->rowCount(); i++ ) {
+		auto c = item->child( i, 0 );
+		c->setCheckState( state );
+		if ( c->hasChildren() )
+			setAllChecked( c, state );
+	}
+}
+
+void MainWindow::selectAll()
+{
+	pause();
+	setAllChecked( archiveModel->invisibleRootItem(), Qt::Checked );
+	unpause();
+}
+
+void MainWindow::selectNone()
+{
+	pause();
+	setAllChecked( archiveModel->invisibleRootItem(), Qt::Unchecked );
+	unpause();
 }
 
 void MainWindow::dropEvent( QDropEvent * e )
