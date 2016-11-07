@@ -280,7 +280,7 @@ bool BSA::open()
 			QVector<BSAFolderInfo> folderInfos;
 			folderInfos.reserve( header.FolderCount );
 			for ( int i = 0; i < header.FolderCount; i++ ) {
-				BSAFolderInfo info{0};
+				BSAFolderInfo info = {};
 
 				// Hash
 				ok &= bsa.read( (char *)&info, 8 ) == 8;
@@ -480,7 +480,7 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 						size_t dstSize = filesize;
 						size_t srcSize = content.size();
 
-						LZ4F_decompressOptions_t options = { 0 };
+						LZ4F_decompressOptions_t options = {};
 
 						LZ4F_decompress( dCtx, tmp.data(), &dstSize, content.data(), &srcSize, &options );
 						LZ4F_errorCode_t error = LZ4F_freeDecompressionContext( dCtx );
@@ -510,7 +510,7 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 					content = gUncompress( tmp, file->packedLength );
 				} else if ( file->tex.chunks.count() ) {
 					// Fill DDS Header
-					DDS_HEADER ddsHeader = { 0 };
+					DDS_HEADER ddsHeader = {};
 					DDS_HEADER_DXT10 dx10Header = {};
 					
 					bool dx10 = false;
