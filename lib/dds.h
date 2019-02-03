@@ -12,8 +12,14 @@
 #ifndef _DDS_H_
 #define _DDS_H_
 
-#include <windows.h>
+
 #include <dxgiformat.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#define MAKEFOURCC(ch0, ch1, ch2, ch3) ((uint)(char)(ch0) | ((uint)(char)(ch1) << 8) | ((uint)(char)(ch2) << 16) | ((uint)(char)(ch3) << 24 ))
+#endif
 
 #pragma pack(push,1)
 
@@ -21,6 +27,7 @@
 
 struct DDS_PIXELFORMAT
 {
+#ifdef _WIN32
     DWORD dwSize;
     DWORD dwFlags;
     DWORD dwFourCC;
@@ -29,6 +36,16 @@ struct DDS_PIXELFORMAT
     DWORD dwGBitMask;
     DWORD dwBBitMask;
     DWORD dwABitMask;
+#else
+    uint dwSize;
+    uint dwFlags;
+    uint dwFourCC;
+    uint dwRGBBitCount;
+    uint dwRBitMask;
+    uint dwGBitMask;
+    uint dwBBitMask;
+    uint dwABitMask;
+#endif
 };
 
 #define DDS_FOURCC      0x00000004  // DDPF_FOURCC
@@ -124,6 +141,7 @@ enum DDS_ALPHA_MODE
 
 typedef struct
 {
+#ifdef _WIN32
     DWORD dwSize;
     DWORD dwHeaderFlags;
     DWORD dwHeight;
@@ -136,15 +154,35 @@ typedef struct
     DWORD dwSurfaceFlags;
     DWORD dwCubemapFlags;
     DWORD dwReserved2[3];
+#else
+    uint dwSize;
+    uint dwHeaderFlags;
+    uint dwHeight;
+    uint dwWidth;
+    uint dwPitchOrLinearSize;
+    uint dwDepth; // only if DDS_HEADER_FLAGS_VOLUME is set in dwHeaderFlags
+    uint dwMipMapCount;
+    uint dwReserved1[11];
+    DDS_PIXELFORMAT ddspf;
+    uint dwSurfaceFlags;
+    uint dwCubemapFlags;
+    uint dwReserved2[3];
+#endif
 } DDS_HEADER;
 
 typedef struct 
 {
     DXGI_FORMAT dxgiFormat;
     DDS_RESOURCE_DIMENSION resourceDimension;
-    DWORD miscFlag; // see DDS_RESOURCE_MISC_FLAG
+#ifdef _WIN32
+    DWORD miscFlag;
     DWORD arraySize;
-    DWORD miscFlags2; // see DDS_MISC_FLAGS2
+    DWORD miscFlags2;
+#else
+    uint miscFlag; // see DDS_RESOURCE_MISC_FLAG
+    uint arraySize;
+    uint miscFlags2; // see DDS_MISC_FLAGS2
+#endif
 } DDS_HEADER_DXT10;
 
 
